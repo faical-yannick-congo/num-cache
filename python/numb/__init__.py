@@ -86,6 +86,8 @@ class Numb:
         signature = hashlib.sha256("{0}{1}{2}".format(operator, numb1.signature, numb2.signature)).hexdigest()
         print "hash = {0}{1}{2}".format(operator, numb1.signature, numb2.signature)
         print "signature = {0}".format(signature)
+        content = '{0}|{1}|{2}|{3}'.format(operator, result, numb1.value, numb2.value)
+        Numb.cache(signature, content)
         queried = Numb.query(signature)
         if queried:
             if Numb.check(queried, result):
@@ -99,8 +101,6 @@ class Numb:
                     logger.error("unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].")
                     return [signature, result]
         else:
-            content = '{0}|{1}|{2}|{3}'.format(operator, result, numb1.value, numb2.value)
-            Numb.cache(signature, content)
             return [signature, result]
 
     def __radd__(self, numb):
@@ -153,6 +153,8 @@ class Numb:
         signature = hashlib.sha256("{0}{1}".format(operator, numb.signature)).hexdigest()
         print "hash = {0}{1}".format(operator, numb.signature)
         print "signature = {0}".format(signature)
+        content = '{0}|{1}|{2}'.format(operator, result, numb.value)
+        Numb.cache(signature, content)
         queried = Numb.query(signature)
         if queried:
             if Numb.check(queried, result):
@@ -166,8 +168,6 @@ class Numb:
                     logger.error("unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].")
                     return [signature, result]
         else:
-            content = '{0}|{1}|{2}'.format(operator, result, numb.value)
-            Numb.cache(signature, content)
             return [signature, result]
 
 def exp(numb):

@@ -125,6 +125,9 @@ Numb Numb::doublon(string oper, Numb numb1, Numb numb2, double result)
     cout << "hash = " << ss.str() << endl;
     string signature = sha256(ss.str());
     cout << "signature = " << signature << endl;
+    stringstream _ss (stringstream::in | stringstream::out);
+    _ss << oper << "|" << result << "|" << numb1.value << "|" << numb2.value;
+    Numb::cache(signature, _ss.str());
     string queried = Numb::query(signature);
     if(queried.compare("") != 0){
     	if (Numb::check(queried, result)){
@@ -144,9 +147,6 @@ Numb Numb::doublon(string oper, Numb numb1, Numb numb2, double result)
             }
         }
     }else{
-        stringstream ss (stringstream::in | stringstream::out);
-        ss << oper << "|" << result << "|" << numb1.value << "|" << numb2.value;
-    	Numb::cache(signature, ss.str());
         return Numb(result, signature);
     }
 }
@@ -188,6 +188,9 @@ Numb Numb::singleton(string oper, Numb numb, double result)
     cout << "hash = " << ss.str() << endl;
     string signature = sha256(ss.str());
     cout << "signature = " << signature << endl;
+    stringstream _ss (stringstream::in | stringstream::out);
+    _ss << oper << "|" << result << "|" << numb.value;
+    Numb::cache(signature, _ss.str());
     string queried = Numb::query(signature);
     if(queried.compare("") != 0){
     	if (Numb::check(queried, result)){
@@ -207,9 +210,6 @@ Numb Numb::singleton(string oper, Numb numb, double result)
             }
         }
     }else{
-        stringstream ss (stringstream::in | stringstream::out);
-        ss << oper << "|" << result << "|" << numb.value;
-        Numb::cache(signature, ss.str());
         return Numb(result, signature);
     }
 }
