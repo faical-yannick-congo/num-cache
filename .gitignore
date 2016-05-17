@@ -1,3 +1,5 @@
 cpp/test
 python/*.pyc
 python/*/*.pyc
+cpp/*/*.o
+cpp/*/run
