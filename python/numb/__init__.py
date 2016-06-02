@@ -12,12 +12,14 @@ coloredlogs.install(level='DEBUG')
 class Numb:
     cache_in = None
     cache_out = None
+    precision = 1
     strategy = 'ignore-cache' # or use-cache
 
     @staticmethod
-    def setup(cache_in=None, cache_out=None, strategy='ignore-cache'):
+    def setup(cache_out=None, cache_in=None, precision=1, strategy='ignore-cache'):
         Numb.cache_in = cache_in
         Numb.cache_out = cache_out
+        Numb.precision = precision
         Numb.strategy = strategy
 
     @staticmethod
