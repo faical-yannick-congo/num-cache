@@ -1,9 +1,6 @@
 from numb import *
 
-if __name__ == '__main__':
-    Numb.setup(cache_out='cache2', cache_in='cache1')
-    # Numb.setup(cache_out='cache2')
-    # Numb.setup(cache_in='cache2')
+def run():
     num1 = Numb(1.28763)
     num2 = Numb(-23.5829)
     num3 = num1 + num2
@@ -13,3 +10,11 @@ if __name__ == '__main__':
     num5 = num4 * num1
     num6 = num5 / num4
     num7 = exp(num5)
+
+if __name__ == '__main__':
+    print "+++ Generating cache1."
+    Numb.setup(cache_out='cache1', precision=15)
+    run()
+    print "+++ Generating cache2 with cache1 as witness."
+    Numb.setup(cache_out='cache2', cache_in='cache1', precision=15, strategy='ignore-cache')
+    run()

@@ -4,3 +4,5 @@ python/*/*.pyc
 applications/cpp/*/*.o
 applications/cpp/*/run
 cpp/test
+*.txt
+cache*
