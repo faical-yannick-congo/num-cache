@@ -30,7 +30,6 @@ void split(const string& s, char c, vector<string>& v)
 
 Numb::Numb(double _value)
 {
-    Numb::strategy = "ignore-cache";
     stringstream ss (stringstream::in | stringstream::out);
     ss.setf( std::ios::fixed, std:: ios::floatfield );
     ss.precision(Numb::precision);
@@ -41,6 +40,11 @@ Numb::Numb(double _value)
     string queried = Numb::query(signature);
     if(queried.compare("") != 0){
         value = _value;
+        stringstream ss (stringstream::in | stringstream::out);
+        ss.setf( std::ios::fixed, std:: ios::floatfield );
+        ss.precision(Numb::precision);
+        ss << "asign|" << value;
+        Numb::cache(signature, ss.str());
     }else{
         value = _value;
         stringstream ss (stringstream::in | stringstream::out);
@@ -55,7 +59,11 @@ Numb::Numb(double _value, string _signature)
 {
     value = _value;
     signature = _signature;
-    Numb::strategy = "ignore-cache";
+    stringstream ss (stringstream::in | stringstream::out);
+    ss.setf( std::ios::fixed, std:: ios::floatfield );
+    ss.precision(Numb::precision);
+    ss << "asign|" << value;
+    Numb::cache(signature, ss.str());
 }
 
 void Numb::setup(string cache_out, string cache_in, int precision, string strategy)
@@ -156,20 +164,26 @@ Numb Numb::doublon(string oper, Numb numb1, Numb numb2, double result)
     Numb::cache(signature, _ss.str());
     string queried = Numb::query(signature);
     if(queried.compare("") != 0){
-        if (Numb::check(queried, result)){
+        if(Numb::strategy.compare("load-cache") == 0){
             vector<string> v;
             split(queried, '|', v);
+            cout << "INFO -- loading [" << stod(v[1]) << "] from cache entry [" << signature << "]." << endl;
             return Numb(stod(v[1]), signature);
         }else{
-            if(Numb::strategy.compare("ignore-cache") == 0){
+            if (Numb::check(queried, result)){
                 return Numb(result, signature);
-            }else if(Numb::strategy.compare("use-cache") == 0){
-                vector<string> v;
-                split(queried, '|', v);
-                return Numb(stod(v[1]), signature);
             }else{
-                cout << "ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache']." << endl;
-                Numb(result, signature);
+                if(Numb::strategy.compare("ignore-cache") == 0){
+                    return Numb(result, signature);
+                }else if(Numb::strategy.compare("use-cache") == 0){
+                    vector<string> v;
+                    split(queried, '|', v);
+                    cout << "INFO -- using [" << stod(v[1]) << "] from cache entry [" << signature << "]." << endl;
+                    return Numb(stod(v[1]), signature);
+                }else{
+                    cout << "ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache']." << endl;
+                    Numb(result, signature);
+                }
             }
         }
     }else{
@@ -223,20 +237,26 @@ Numb Numb::singleton(string oper, Numb numb, double result)
     Numb::cache(signature, _ss.str());
     string queried = Numb::query(signature);
     if(queried.compare("") != 0){
-        if (Numb::check(queried, result)){
+        if(Numb::strategy.compare("load-cache") == 0){
             vector<string> v;
             split(queried, '|', v);
+            cout << "INFO -- loading [" << stod(v[1]) << "] from cache entry [" << signature << "]." << endl;
             return Numb(stod(v[1]), signature);
         }else{
-            if(Numb::strategy.compare("ignore-cache") == 0){
+            if (Numb::check(queried, result)){
                 return Numb(result, signature);
-            }else if(Numb::strategy.compare("use-cache") == 0){
-                vector<string> v;
-                split(queried, '|', v);
-                return Numb(stod(v[1]), signature);
             }else{
-                cout << "ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache']." << endl;
-                return Numb(result, signature);
+                if(Numb::strategy.compare("ignore-cache") == 0){
+                    return Numb(result, signature);
+                }else if(Numb::strategy.compare("use-cache") == 0){
+                    vector<string> v;
+                    split(queried, '|', v);
+                    cout << "INFO -- using [" << stod(v[1]) << "] from cache entry [" << signature << "]." << endl;
+                    return Numb(stod(v[1]), signature);
+                }else{
+                    cout << "ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache']." << endl;
+                    return Numb(result, signature);
+                }
             }
         }
     }else{

@@ -20,5 +20,10 @@ int main(){
   cout << "+++ Generating cache2 with cache1 as witness." << endl;
   Numb::setup("cache2", "cache1", 15, "ignore-cache");
   run();
-
+  cout << "+++ Loading cache1." << endl;
+  Numb::setup("cache2", "cache1", 15, "load-cache");
+  run();
+  cout << "+++ Using cache1." << endl;
+  Numb::setup("cache2", "cache1", 15, "use-cache");
+  run();
 }

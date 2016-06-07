@@ -18,3 +18,9 @@ if __name__ == '__main__':
     print "+++ Generating cache2 with cache1 as witness."
     Numb.setup(cache_out='cache2', cache_in='cache1', precision=15, strategy='ignore-cache')
     run()
+    print "+++ Loading cache1."
+    Numb.setup(cache_out='cache2', cache_in='cache1', precision=15, strategy='load-cache')
+    run()
+    print "+++ Using cache1."
+    Numb.setup(cache_out='cache2', cache_in='cache1', precision=15, strategy='use-cache')
+    run()

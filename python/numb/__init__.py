@@ -2,6 +2,8 @@ import math
 import hashlib
 import os
 import shutil
+import sys
+import traceback
 
 import logging
 logger = logging.getLogger('calculus')
@@ -13,7 +15,7 @@ class Numb:
     cache_in = None
     cache_out = None
     precision = 1
-    strategy = 'ignore-cache' # or use-cache
+    strategy = 'ignore-cache' # or use-cache, load-cache
 
     @staticmethod
     def setup(cache_out=None, cache_in=None, precision=1, strategy='ignore-cache'):
@@ -45,6 +47,7 @@ class Numb:
                 with open("{0}/{1}.cache".format(Numb.cache_in, signature), "r") as cache_file:
                     content = cache_file.read()
             except:
+                traceback.print_exc(file=sys.stdout)
                 logger.error("Unable to open the input cache entry {0} file.".format(signature))
                 return content
         return content
@@ -67,6 +70,10 @@ class Numb:
         if isinstance(value, list):
             self.signature = value[0]
             self.value = value[1]
+            content = 'asign|{0}'.format(format(self.value, '.{0}f'.format(Numb.precision)))
+            Numb.cache(self.signature, content)
+            print "hash = asign{0}".format(format(self.value, '.{0}f'.format(Numb.precision)))
+            print "signature = {0}".format(self.signature)
         else:
             self.signature = hashlib.sha256("asign{0}".format(format(value, '.{0}f'.format(Numb.precision)))).hexdigest()
             queried = Numb.query(self.signature)
@@ -74,8 +81,8 @@ class Numb:
                 self.value = value
             else:
                 self.value = value
-                content = 'asign|{0}'.format(format(value, '.{0}f'.format(Numb.precision)))
-                Numb.cache(self.signature, content)
+            content = 'asign|{0}'.format(format(value, '.{0}f'.format(Numb.precision)))
+            Numb.cache(self.signature, content)
             print "hash = asign{0}".format(format(value, '.{0}f'.format(Numb.precision)))
             print "signature = {0}".format(self.signature)
 
@@ -92,16 +99,21 @@ class Numb:
         Numb.cache(signature, content)
         queried = Numb.query(signature)
         if queried:
-            if Numb.check(queried, result):
+            if Numb.strategy == 'load-cache':
+                logger.info("loading [{0}] from cache entry [{1}].".format(queried.split('|')[1], signature))
                 return [signature, float(queried.split('|')[1])]
             else:
-                if Numb.strategy == 'ignore-cache':
+                if Numb.check(queried, result):
                     return [signature, result]
-                elif Numb.strategy == 'use-cache':
-                    return [signature, float(queried.split('|')[1])]
                 else:
-                    logger.error("unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].")
-                    return [signature, result]
+                    if Numb.strategy == 'ignore-cache':
+                        return [signature, result]
+                    elif Numb.strategy == 'use-cache':
+                        logger.info("using [{0}] from cache entry [{1}].".format(queried.split('|')[1], signature))
+                        return [signature, float(queried.split('|')[1])]
+                    else:
+                        logger.error("unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].")
+                        return [signature, result]
         else:
             return [signature, result]
 
@@ -159,16 +171,21 @@ class Numb:
         Numb.cache(signature, content)
         queried = Numb.query(signature)
         if queried:
-            if Numb.check(queried, result):
+            if Numb.strategy == 'load-cache':
+                logger.info("loading [{0}] from cache entry [{1}].".format(queried.split('|')[1], signature))
                 return [signature, float(queried.split('|')[1])]
             else:
-                if Numb.strategy == 'ignore-cache':
+                if Numb.check(queried, result):
                     return [signature, result]
-                elif Numb.strategy == 'use-cache':
-                    return [signature, float(queried.split('|')[1])]
                 else:
-                    logger.error("unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].")
-                    return [signature, result]
+                    if Numb.strategy == 'ignore-cache':
+                        return [signature, result]
+                    elif Numb.strategy == 'use-cache':
+                        logger.info("using [{0}] from cache entry [{1}].".format(queried.split('|')[1], signature))
+                        return [signature, float(queried.split('|')[1])]
+                    else:
+                        logger.error("unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].")
+                        return [signature, result]
         else:
             return [signature, result]
 
