@@ -1,8 +1,8 @@
 from numb import *
 
 if __name__ == '__main__':
-    Numb.setup(cache_out='cache2', cache_in='cache1')
-    # Numb.setup(cache_out='cache2')
+    Numb.setup(cache_out='cache2', cache_in='cache1', precision=5, strategy='ignore-cache')
+    # Numb.setup(cache_out='cache1', precision=5)
     # Numb.setup(cache_in='cache2')
     num1 = Numb(1.28763)
     num2 = Numb(-23.5829)

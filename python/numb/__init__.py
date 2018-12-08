@@ -53,7 +53,7 @@ class Numb:
     def check(cache=None, current=None):
         logger.debug("current = {0}".format(current))
         logger.debug("cache = {0}".format(cache.split('|')[1]))
-        if cache.split('|')[1] != str(current):
+        if cache.split('|')[1] != format(current, '.{0}f'.format(Numb.precision)):
             logger.warning("previously cached operation evaluation changed from [{0}] to [{1}].".format(cache.split('|')[1], current))
             logger.warning("cached: {0}".format(current))
             return False
@@ -68,19 +68,19 @@ class Numb:
             self.signature = value[0]
             self.value = value[1]
         else:
-            self.signature = hashlib.sha256("asign{0}".format(value)).hexdigest()
+            self.signature = hashlib.sha256("asign{0}".format(format(value, '.{0}f'.format(Numb.precision)))).hexdigest()
             queried = Numb.query(self.signature)
             if queried:
                 self.value = value
             else:
                 self.value = value
-                content = 'asign|{0}'.format(self.value)
+                content = 'asign|{0}'.format(format(value, '.{0}f'.format(Numb.precision)))
                 Numb.cache(self.signature, content)
-            print "hash = asign{0}".format(value)
+            print "hash = asign{0}".format(format(value, '.{0}f'.format(Numb.precision)))
             print "signature = {0}".format(self.signature)
 
     def __str__(self):
-        return str("{0} -> {1}".format(self.signature, self.value))
+        return str("{0} -> {1}".format(self.signature, format(self.value, '.{0}f'.format(Numb.precision))))
 
     @staticmethod
     def doublon(operator, numb1, numb2, result):
@@ -88,7 +88,7 @@ class Numb:
         signature = hashlib.sha256("{0}{1}{2}".format(operator, numb1.signature, numb2.signature)).hexdigest()
         print "hash = {0}{1}{2}".format(operator, numb1.signature, numb2.signature)
         print "signature = {0}".format(signature)
-        content = '{0}|{1}|{2}|{3}'.format(operator, result, numb1.value, numb2.value)
+        content = '{0}|{1}|{2}|{3}'.format(operator, format(result, '.{0}f'.format(Numb.precision)), format(numb1.value, '.{0}f'.format(Numb.precision)), format(numb2.value, '.{0}f'.format(Numb.precision)))
         Numb.cache(signature, content)
         queried = Numb.query(signature)
         if queried:
@@ -155,7 +155,7 @@ class Numb:
         signature = hashlib.sha256("{0}{1}".format(operator, numb.signature)).hexdigest()
         print "hash = {0}{1}".format(operator, numb.signature)
         print "signature = {0}".format(signature)
-        content = '{0}|{1}|{2}'.format(operator, result, numb.value)
+        content = '{0}|{1}|{2}'.format(operator, format(result, '.{0}f'.format(Numb.precision)), format(numb.value, '.{0}f'.format(Numb.precision)))
         Numb.cache(signature, content)
         queried = Numb.query(signature)
         if queried:

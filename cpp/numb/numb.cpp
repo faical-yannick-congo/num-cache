@@ -1,12 +1,8 @@
 #include "numb.hpp"
-#include <fstream>
 #include <cmath>
 #include "sha256.hpp"
 #include <vector>
 #include <cstdlib>
-#include <sstream>
-#include <iomanip>
-#include <iostream>
 
 string Numb::cache_in;
 string Numb::cache_out;
@@ -30,14 +26,14 @@ void split(const string& s, char c, vector<string>& v)
 
 Numb::Numb(double _value)
 {
-    Numb::strategy = "ignore-cache";
+    // Numb::strategy = "ignore-cache";
     stringstream ss (stringstream::in | stringstream::out);
     ss.setf( std::ios::fixed, std:: ios::floatfield );
     ss.precision(Numb::precision);
     ss << "asign" << std::setprecision(Numb::precision) << _value;
-    cout << "hash = " << ss.str() << endl;
+    Numb::log("hash = " + ss.str());
     signature = sha256(ss.str());
-    cout << "signature = " << signature << endl;
+    Numb::log("signature = " + signature);
     string queried = Numb::query(signature);
     if(queried.compare("") != 0){
         value = _value;
@@ -55,7 +51,8 @@ Numb::Numb(double _value, string _signature)
 {
     value = _value;
     signature = _signature;
-    Numb::strategy = "ignore-cache";
+    // Numb::strategy = "ignore-cache";
+    //cout << "Numb value: " << _value << " And Signature: " << _signature;
 }
 
 void Numb::setup(string cache_out, string cache_in, int precision, string strategy)
@@ -64,17 +61,39 @@ void Numb::setup(string cache_out, string cache_in, int precision, string strate
     Numb::cache_out = cache_out;
     Numb::strategy = strategy;
     Numb::precision = precision;
-    cout.setf( std::ios::fixed, std:: ios::floatfield );
-    cout.precision(Numb::precision);
+
+    ofstream log_file("numcache.log");
+    if (log_file.is_open())
+    {
+        log_file << "" << endl;
+        log_file.close();
+    }
+}
+
+void Numb::log(string content)
+{
+    vector<string> v;
+    split(content, '|', v);
+    ofstream log_file;
+    log_file.setf( std::ios::fixed, std:: ios::floatfield );
+    log_file.precision(Numb::precision);
+    log_file.open("numcache.log", std::ofstream::out | std::ofstream::app);
+
+    if (log_file.is_open())
+    {
+        log_file << content << endl;
+        log_file.close();
+    }
+    else cout << "ERROR -- Unable to open the num-cache log file. " << endl;
 }
 
 void Numb::cache(string signature, string content)
 {
-    
+
     const int dir_err = system(string("mkdir -p "+Numb::cache_out).c_str());
     if (-1 == dir_err)
     {
-        cout << "ERROR -- Unable to create the cache directory." << endl;
+        Numb::log("ERROR -- Unable to create the cache directory.");
     }
     vector<string> v;
     split(content, '|', v);
@@ -85,9 +104,9 @@ void Numb::cache(string signature, string content)
     {
         cache_file << content << endl;
         cache_file.close();
-        cout << "DEBUG -- " << v[0] << " operation was successfuly cached." << endl;
+        Numb::log("DEBUG -- " + v[0] + " operation was successfuly cached.");
     }
-    else cout << "ERROR -- Unable to open the output cache entry " << signature << " file." << endl;
+    else Numb::log("ERROR -- Unable to open the output cache entry " + signature + " file.");
 }
 
 string Numb::query(string signature)
@@ -107,12 +126,12 @@ string Numb::query(string signature)
             string line;
             while ( getline (cache_file,line) )
             {
-                content += line + "|";
+                content += line;
             }
             cache_file.close();
         }
         else {
-            cout << "ERROR -- Unable to open the input cache entry " << signature << " file." << endl;
+            Numb::log("ERROR -- Unable to open the input cache entry " + signature + " file.");
         }
        return content;
     }
@@ -123,19 +142,26 @@ bool Numb::check(string cache, double current)
     stringstream ss (stringstream::in | stringstream::out);
     ss.setf( std::ios::fixed, std:: ios::floatfield );
     ss.precision(Numb::precision);
-    cout.setf(ios::fixed, ios::floatfield);
+    stringstream v1 (stringstream::in | stringstream::out);
+    v1.setf( std::ios::fixed, std:: ios::floatfield );
+    v1.precision(Numb::precision);
+    stringstream curr (stringstream::in | stringstream::out);
+    curr.setf( std::ios::fixed, std:: ios::floatfield );
+    curr.precision(Numb::precision);
     vector<string> v;
     split(cache, '|', v);
-    cout << "V1: " << v[1] << endl;
-    cout << "Current: " << current << endl;
+    v1 << v[1];
+    curr << current;
+    Numb::log("V1: " + v1.str());
+    Numb::log("Current: " + curr.str());
     ss << current;
     if (v[1] != ss.str())
     {
-        cout << "WARNING -- previously cached operation evaluation changed from [" << stod(v[1]) << "] to [" << current << "]." << endl;
-        cout << "WARNING -- cached: " << cache << endl;
+        Numb::log("WARNING -- previously cached operation evaluation changed from [" + v1.str() + "] to [" + curr.str() + "].");
+        Numb::log("WARNING -- cached: " + cache);
         return false;
     }else{
-        cout << "DEBUG -- operator gave an identical evaluation that match the cache." << endl;
+        Numb::log("DEBUG -- operator gave an identical evaluation that match the cache.");
         return true;
     }
 }
@@ -146,35 +172,54 @@ Numb Numb::doublon(string oper, Numb numb1, Numb numb2, double result)
     ss.setf( std::ios::fixed, std:: ios::floatfield );
     ss.precision(Numb::precision);
     ss << oper << numb1.signature << numb2.signature;
-    cout << "hash = " << ss.str() << endl;
+    Numb::log("hash = " + ss.str());
     string signature = sha256(ss.str());
-    cout << "signature = " << signature << endl;
+    Numb::log("signature = " + signature);
     stringstream _ss (stringstream::in | stringstream::out);
     _ss.setf( std::ios::fixed, std:: ios::floatfield );
     _ss.precision(Numb::precision);
     _ss << oper << "|" << result << "|" << numb1.value << "|" << numb2.value;
-    Numb::cache(signature, _ss.str());
-    string queried = Numb::query(signature);
-    if(queried.compare("") != 0){
-        if (Numb::check(queried, result)){
-            vector<string> v;
-            split(queried, '|', v);
-            return Numb(stod(v[1]), signature);
-        }else{
-            if(Numb::strategy.compare("ignore-cache") == 0){
-                return Numb(result, signature);
-            }else if(Numb::strategy.compare("use-cache") == 0){
-                vector<string> v;
-                split(queried, '|', v);
-                return Numb(stod(v[1]), signature);
-            }else{
-                cout << "ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache']." << endl;
-                Numb(result, signature);
-            }
+    // Numb::cache(signature, _ss.str());
+
+    if(Numb::strategy.compare("ignore-cache") == 0){
+        if(Numb::cache_in.length() != 0){
+            string queried = Numb::query(signature);
+            Numb::check(queried, result);
         }
+        Numb::cache(signature, _ss.str());
+        return Numb(result, signature);
+    }else if(Numb::strategy.compare("use-cache") == 0){
+        string queried = Numb::query(signature);
+        vector<string> v;
+        split(queried, '|', v);
+        Numb::cache(signature, queried);
+        return Numb(stod(v[1]), signature);
     }else{
+        Numb::log("ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].");
         return Numb(result, signature);
     }
+    // if(queried.compare("") != 0){
+    //     if (Numb::check(queried, result)){
+    //         vector<string> v;
+    //         split(queried, '|', v);
+    //         return Numb(stod(v[1]), signature);
+    //     }else{
+    //         if(Numb::strategy.compare("ignore-cache") == 0){
+    //             Numb::cache(signature, _ss.str());
+    //             return Numb(result, signature);
+    //         }else if(Numb::strategy.compare("use-cache") == 0){
+    //             vector<string> v;
+    //             split(queried, '|', v);
+    //             Numb::cache(signature, queried);
+    //             return Numb(stod(v[1]), signature);
+    //         }else{
+    //             Numb::log("ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].");
+    //             return Numb(result, signature);
+    //         }
+    //     }
+    // }else{
+    //     return Numb(result, signature);
+    // }
 }
 
 Numb operator+ (const Numb &lhs, const Numb &rhs)
@@ -202,9 +247,9 @@ Numb operator/ (const Numb &lhs, const Numb &rhs)
 }
 
 ostream &operator<< ( ostream &output, const Numb &N )
-{ 
+{
     output << N.value;
-    return output;            
+    return output;
 }
 
 Numb Numb::singleton(string oper, Numb numb, double result)
@@ -213,35 +258,53 @@ Numb Numb::singleton(string oper, Numb numb, double result)
     ss.setf( std::ios::fixed, std:: ios::floatfield );
     ss.precision(Numb::precision);
     ss << oper << numb.signature;
-    cout << "hash = " << ss.str() << endl;
+    Numb::log("hash = " + ss.str());
     string signature = sha256(ss.str());
-    cout << "signature = " << signature << endl;
+    Numb::log("signature = " + signature);
     stringstream _ss (stringstream::in | stringstream::out);
     _ss.setf( std::ios::fixed, std:: ios::floatfield );
     _ss.precision(Numb::precision);
     _ss << oper << "|" << result << "|" << numb.value;
-    Numb::cache(signature, _ss.str());
-    string queried = Numb::query(signature);
-    if(queried.compare("") != 0){
-        if (Numb::check(queried, result)){
-            vector<string> v;
-            split(queried, '|', v);
-            return Numb(stod(v[1]), signature);
-        }else{
-            if(Numb::strategy.compare("ignore-cache") == 0){
-                return Numb(result, signature);
-            }else if(Numb::strategy.compare("use-cache") == 0){
-                vector<string> v;
-                split(queried, '|', v);
-                return Numb(stod(v[1]), signature);
-            }else{
-                cout << "ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache']." << endl;
-                return Numb(result, signature);
-            }
+    if(Numb::strategy.compare("ignore-cache") == 0){
+        if(Numb::cache_in.length() != 0){
+            string queried = Numb::query(signature);
+            Numb::check(queried, result);
         }
+        Numb::cache(signature, _ss.str());
+        return Numb(result, signature);
+    }else if(Numb::strategy.compare("use-cache") == 0){
+        string queried = Numb::query(signature);
+        vector<string> v;
+        split(queried, '|', v);
+        Numb::cache(signature, queried);
+        return Numb(stod(v[1]), signature);
     }else{
+        Numb::log("ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].");
         return Numb(result, signature);
     }
+    // if(queried.compare("") != 0){
+    //     if (Numb::check(queried, result)){
+    //         vector<string> v;
+    //         split(queried, '|', v);
+    //         return Numb(stod(v[1]), signature);
+    //     }else{
+    //         if(Numb::strategy.compare("ignore-cache") == 0){
+    //             Numb::cache(signature, _ss.str());
+    //             return Numb(result, signature);
+    //         }else if(Numb::strategy.compare("use-cache") == 0){
+    //             vector<string> v;
+    //             split(queried, '|', v);
+    //             //cout << "singleton - cached used: "<< queried << endl;
+    //             Numb::cache(signature, queried);
+    //             return Numb(stod(v[1]), signature);
+    //         }else{
+    //             Numb::log("ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].");
+    //             return Numb(result, signature);
+    //         }
+    //     }
+    // }else{
+    //     return Numb(result, signature);
+    // }
 }
 
 Numb Numb::exp(Numb numb){

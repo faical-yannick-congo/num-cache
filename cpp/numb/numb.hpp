@@ -1,5 +1,8 @@
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
 
 using namespace std;
 
@@ -15,11 +18,12 @@ class Numb {
     Numb(double, string);
     static void setup(string, string, int, string);
     static void cache(string, string);
+    static void log(string);
     static string query(string);
     static bool check(string, double);
     static Numb doublon(string, Numb, Numb, double);
     static Numb singleton(string, Numb, double);
-    static void setup(string, Numb, double);
+    // static void setup(string, Numb, double);
 
     friend Numb operator+ (const Numb &lhs, const Numb &rhs);
     friend Numb operator-(const Numb &lhs, const Numb &rhs);

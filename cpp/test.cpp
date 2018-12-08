@@ -1,7 +1,7 @@
 #include "numb/numb.hpp"
 
 int main(){
-    Numb::setup("cache2", "cache1", 5, "ignore-cache");
+    Numb::setup("cache2", "cache1", 6, "ignore-cache");
     // Numb::setup("cache1", "", 5, "ignore-cache");
     Numb num1(1.28763);
     Numb num2(-23.5829);

@@ -3,4 +3,12 @@ python/*.pyc
 python/*/*.pyc
 applications/cpp/*/*.o
 applications/cpp/*/run
+cache*/
+*.txt
+*.log
 cpp/test
+.DS_Store
+use
+witness
+ignore
+run
