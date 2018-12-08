@@ -26,7 +26,6 @@ void split(const string& s, char c, vector<string>& v)
 
 Numb::Numb(double _value)
 {
-    // Numb::strategy = "ignore-cache";
     stringstream ss (stringstream::in | stringstream::out);
     ss.setf( std::ios::fixed, std:: ios::floatfield );
     ss.precision(Numb::precision);
@@ -51,8 +50,6 @@ Numb::Numb(double _value, string _signature)
 {
     value = _value;
     signature = _signature;
-    // Numb::strategy = "ignore-cache";
-    //cout << "Numb value: " << _value << " And Signature: " << _signature;
 }
 
 void Numb::setup(string cache_out, string cache_in, int precision, string strategy)
@@ -179,7 +176,6 @@ Numb Numb::doublon(string oper, Numb numb1, Numb numb2, double result)
     _ss.setf( std::ios::fixed, std:: ios::floatfield );
     _ss.precision(Numb::precision);
     _ss << oper << "|" << result << "|" << numb1.value << "|" << numb2.value;
-    // Numb::cache(signature, _ss.str());
 
     if(Numb::strategy.compare("ignore-cache") == 0){
         if(Numb::cache_in.length() != 0){
@@ -198,28 +194,6 @@ Numb Numb::doublon(string oper, Numb numb1, Numb numb2, double result)
         Numb::log("ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].");
         return Numb(result, signature);
     }
-    // if(queried.compare("") != 0){
-    //     if (Numb::check(queried, result)){
-    //         vector<string> v;
-    //         split(queried, '|', v);
-    //         return Numb(stod(v[1]), signature);
-    //     }else{
-    //         if(Numb::strategy.compare("ignore-cache") == 0){
-    //             Numb::cache(signature, _ss.str());
-    //             return Numb(result, signature);
-    //         }else if(Numb::strategy.compare("use-cache") == 0){
-    //             vector<string> v;
-    //             split(queried, '|', v);
-    //             Numb::cache(signature, queried);
-    //             return Numb(stod(v[1]), signature);
-    //         }else{
-    //             Numb::log("ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].");
-    //             return Numb(result, signature);
-    //         }
-    //     }
-    // }else{
-    //     return Numb(result, signature);
-    // }
 }
 
 Numb operator+ (const Numb &lhs, const Numb &rhs)
@@ -282,29 +256,6 @@ Numb Numb::singleton(string oper, Numb numb, double result)
         Numb::log("ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].");
         return Numb(result, signature);
     }
-    // if(queried.compare("") != 0){
-    //     if (Numb::check(queried, result)){
-    //         vector<string> v;
-    //         split(queried, '|', v);
-    //         return Numb(stod(v[1]), signature);
-    //     }else{
-    //         if(Numb::strategy.compare("ignore-cache") == 0){
-    //             Numb::cache(signature, _ss.str());
-    //             return Numb(result, signature);
-    //         }else if(Numb::strategy.compare("use-cache") == 0){
-    //             vector<string> v;
-    //             split(queried, '|', v);
-    //             //cout << "singleton - cached used: "<< queried << endl;
-    //             Numb::cache(signature, queried);
-    //             return Numb(stod(v[1]), signature);
-    //         }else{
-    //             Numb::log("ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].");
-    //             return Numb(result, signature);
-    //         }
-    //     }
-    // }else{
-    //     return Numb(result, signature);
-    // }
 }
 
 Numb Numb::exp(Numb numb){

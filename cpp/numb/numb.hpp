@@ -23,7 +23,6 @@ class Numb {
     static bool check(string, double);
     static Numb doublon(string, Numb, Numb, double);
     static Numb singleton(string, Numb, double);
-    // static void setup(string, Numb, double);
 
     friend Numb operator+ (const Numb &lhs, const Numb &rhs);
     friend Numb operator-(const Numb &lhs, const Numb &rhs);
