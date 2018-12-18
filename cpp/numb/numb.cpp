@@ -34,15 +34,13 @@ Numb::Numb(double _value)
     signature = sha256(ss.str());
     Numb::log("signature = " + signature);
     string queried = Numb::query(signature);
-    if(queried.compare("") != 0){
-        value = _value;
-    }else{
-        value = _value;
-        stringstream ss (stringstream::in | stringstream::out);
-        ss.setf( std::ios::fixed, std:: ios::floatfield );
-        ss.precision(Numb::precision);
-        ss << "asign|" << value;
-        Numb::cache(signature, ss.str());
+    value = _value;
+    if(Numb::strategy.compare("use-cache") != 0){
+      stringstream _ss (stringstream::in | stringstream::out);
+      _ss.setf( std::ios::fixed, std:: ios::floatfield );
+      _ss.precision(Numb::precision);
+      _ss << "asign|" << value;
+      Numb::cache(signature, _ss.str());
     }
 }
 
@@ -115,13 +113,10 @@ string Numb::query(string signature)
         ifstream cache_file (Numb::cache_in+"/"+signature+".cache");
         cache_file.setf( std::ios::fixed, std:: ios::floatfield );
         cache_file.precision(Numb::precision);
-        if(Numb::cache_in.compare("") == 0){
-            return content;
-        }
         if (cache_file.is_open())
         {
             string line;
-            while ( getline (cache_file,line) )
+            while ( getline (cache_file, line) )
             {
                 content += line;
             }
@@ -147,19 +142,39 @@ bool Numb::check(string cache, double current)
     curr.precision(Numb::precision);
     vector<string> v;
     split(cache, '|', v);
-    v1 << v[1];
     curr << current;
-    Numb::log("V1: " + v1.str());
-    Numb::log("Current: " + curr.str());
-    ss << current;
-    if (v[1] != ss.str())
-    {
-        Numb::log("WARNING -- previously cached operation evaluation changed from [" + v1.str() + "] to [" + curr.str() + "].");
-        Numb::log("WARNING -- cached: " + cache);
-        return false;
-    }else{
-        Numb::log("DEBUG -- operator gave an identical evaluation that match the cache.");
-        return true;
+    if (v[0] == "out"){ // We have detected some out of order.
+      Numb::log("WARNING -- out of order detected!");
+      string queried = Numb::query(v[1]);
+      vector<string> oo; // out of order
+      split(queried, '|', oo);
+      if (oo[1] != curr.str())
+      {
+          stringstream ooo (stringstream::in | stringstream::out);
+          ooo.setf( std::ios::fixed, std:: ios::floatfield );
+          ooo.precision(Numb::precision);
+          ooo << oo[1];
+          Numb::log("WARNING -- previously cached operation evaluation changed from [" + ooo.str() + "] to [" + curr.str() + "].");
+          Numb::log("WARNING -- this is likely to be caused by the operation order change detected for the original cache: " + queried);
+          return false;
+      }else{
+          Numb::log("DEBUG -- despite the out of order detected, the operator gave an identical evaluation that matches the original cache.");
+          return true;
+      }
+    } else { // No out of order detected. We check the results anyways for operators errors.
+      v1 << v[1];
+      Numb::log("V1: " + v1.str());
+      Numb::log("Current: " + curr.str());
+      ss << current;
+      if (v[1] != ss.str())
+      {
+          Numb::log("WARNING -- previously cached operation evaluation changed from [" + v1.str() + "] to [" + curr.str() + "].");
+          Numb::log("WARNING -- cached: " + cache);
+          return false;
+      }else{
+          Numb::log("DEBUG -- operator gave an identical evaluation that match the cache.");
+          return true;
+      }
     }
 }
 
@@ -168,14 +183,32 @@ Numb Numb::doublon(string oper, Numb numb1, Numb numb2, double result)
     stringstream ss (stringstream::in | stringstream::out);
     ss.setf( std::ios::fixed, std:: ios::floatfield );
     ss.precision(Numb::precision);
+
+    stringstream oo (stringstream::in | stringstream::out);
+    oo.setf( std::ios::fixed, std:: ios::floatfield );
+    oo.precision(Numb::precision);
+
     ss << oper << numb1.signature << numb2.signature;
-    Numb::log("hash = " + ss.str());
+    oo << oper << numb2.signature << numb1.signature;
+
+    Numb::log("in-order to hash = " + ss.str());
+    Numb::log("out-order to hash = " + oo.str());
+
     string signature = sha256(ss.str());
-    Numb::log("signature = " + signature);
+    string osignature = sha256(oo.str());
+
+    Numb::log("in-order signature = " + signature);
+    Numb::log("out-order signature = " + osignature);
+
     stringstream _ss (stringstream::in | stringstream::out);
     _ss.setf( std::ios::fixed, std:: ios::floatfield );
     _ss.precision(Numb::precision);
     _ss << oper << "|" << result << "|" << numb1.value << "|" << numb2.value;
+
+    stringstream _oo (stringstream::in | stringstream::out);
+    _oo.setf( std::ios::fixed, std:: ios::floatfield );
+    _oo.precision(Numb::precision);
+    _oo << "out|" << signature;
 
     if(Numb::strategy.compare("ignore-cache") == 0){
         if(Numb::cache_in.length() != 0){
@@ -183,12 +216,14 @@ Numb Numb::doublon(string oper, Numb numb1, Numb numb2, double result)
             Numb::check(queried, result);
         }
         Numb::cache(signature, _ss.str());
+        if(numb1.value != numb2.value){
+          Numb::cache(osignature, _oo.str());
+        }
         return Numb(result, signature);
     }else if(Numb::strategy.compare("use-cache") == 0){
         string queried = Numb::query(signature);
         vector<string> v;
         split(queried, '|', v);
-        Numb::cache(signature, queried);
         return Numb(stod(v[1]), signature);
     }else{
         Numb::log("ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].");
@@ -250,7 +285,6 @@ Numb Numb::singleton(string oper, Numb numb, double result)
         string queried = Numb::query(signature);
         vector<string> v;
         split(queried, '|', v);
-        Numb::cache(signature, queried);
         return Numb(stod(v[1]), signature);
     }else{
         Numb::log("ERROR -- unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].");

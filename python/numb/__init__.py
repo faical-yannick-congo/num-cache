@@ -53,13 +53,24 @@ class Numb:
     def check(cache=None, current=None):
         logger.debug("current = {0}".format(current))
         logger.debug("cache = {0}".format(cache.split('|')[1]))
-        if cache.split('|')[1] != format(current, '.{0}f'.format(Numb.precision)):
-            logger.warning("previously cached operation evaluation changed from [{0}] to [{1}].".format(cache.split('|')[1], current))
-            logger.warning("cached: {0}".format(current))
-            return False
+        if cache.split('|')[0] == "out":
+            logger.warning("out of order detected!")
+            queried = Numb.query(cache.split('|')[1])
+            if queried.split('|')[1] != format(current, '.{0}f'.format(Numb.precision)):
+                logger.warning("previously cached operation evaluation changed from [{0}] to [{1}].".format(queried.split('|')[1], current))
+                logger.warning("this is likely to be caused by the operation order change detected for the original cache: {0}".format(current))
+                return False
+            else:
+                logger.debug("despite the out of order detected, the operator gave an identical evaluation that matches the original cache.")
+                return True
         else:
-            logger.debug("operator gave an identical evaluation that match the cache.")
-            return True
+            if cache.split('|')[1] != format(current, '.{0}f'.format(Numb.precision)):
+                logger.warning("previously cached operation evaluation changed from [{0}] to [{1}].".format(cache.split('|')[1], current))
+                logger.warning("cached: {0}".format(current))
+                return False
+            else:
+                logger.debug("operator gave an identical evaluation that match the cache.")
+                return True
 
 
     def __init__(self, value):
@@ -68,45 +79,49 @@ class Numb:
             self.signature = value[0]
             self.value = value[1]
         else:
-            self.signature = hashlib.sha256("asign{0}".format(format(value, '.{0}f'.format(Numb.precision)))).hexdigest()
+            self.signature = hashlib.sha256("asign{0}".format(format(value, '.{0}f'.format(Numb.precision))).encode('utf-8')).hexdigest()
             queried = Numb.query(self.signature)
-            if queried:
-                self.value = value
-            else:
-                self.value = value
+            self.value = value
+            if Numb.strategy != 'use-cache':
                 content = 'asign|{0}'.format(format(value, '.{0}f'.format(Numb.precision)))
                 Numb.cache(self.signature, content)
-            print "hash = asign{0}".format(format(value, '.{0}f'.format(Numb.precision)))
-            print "signature = {0}".format(self.signature)
+
+            logger.debug("hash = asign{0}".format(format(value, '.{0}f'.format(Numb.precision))))
+            logger.debug("signature = {0}".format(self.signature))
 
     def __str__(self):
         return str("{0} -> {1}".format(self.signature, format(self.value, '.{0}f'.format(Numb.precision))))
 
     @staticmethod
     def doublon(operator, numb1, numb2, result):
-        print "{0}{1}{2}".format(operator, numb1, numb2)
-        signature = hashlib.sha256("{0}{1}{2}".format(operator, numb1.signature, numb2.signature)).hexdigest()
-        print "hash = {0}{1}{2}".format(operator, numb1.signature, numb2.signature)
-        print "signature = {0}".format(signature)
-        content = '{0}|{1}|{2}|{3}'.format(operator, format(result, '.{0}f'.format(Numb.precision)), format(numb1.value, '.{0}f'.format(Numb.precision)), format(numb2.value, '.{0}f'.format(Numb.precision)))
-        Numb.cache(signature, content)
-        queried = Numb.query(signature)
-        if queried:
-            if Numb.check(queried, result):
-                return [signature, float(queried.split('|')[1])]
-            else:
-                if Numb.strategy == 'ignore-cache':
-                    return [signature, result]
-                elif Numb.strategy == 'use-cache':
-                    return [signature, float(queried.split('|')[1])]
-                else:
-                    logger.error("unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].")
-                    return [signature, result]
+        signature = hashlib.sha256("{0}{1}{2}".format(operator, numb1.signature, numb2.signature).encode('utf-8')).hexdigest()
+        osignature = hashlib.sha256("{0}{1}{2}".format(operator, numb2.signature, numb1.signature).encode('utf-8')).hexdigest()
+
+        logger.debug("in-order to hash = {0}{1}{2}".format(operator, numb1.signature, numb2.signature))
+        logger.debug("out-order to hash = {0}{1}{2}".format(operator, numb2.signature, numb1.signature))
+
+        logger.debug("in-order signature = {0}".format(signature))
+        logger.debug("out-order signature = {0}".format(osignature))
+
+        if Numb.strategy == 'ignore-cache':
+            if Numb.cache_in:
+                queried = Numb.query(signature)
+                Numb.check(queried, result)
+            content = '{0}|{1}|{2}|{3}'.format(operator, format(result, '.{0}f'.format(Numb.precision)), format(numb1.value, '.{0}f'.format(Numb.precision)), format(numb2.value, '.{0}f'.format(Numb.precision)))
+            Numb.cache(signature, content)
+            if numb1.value != numb2.value: # cache only if necessary. When the two operands are different.
+                ocontent = 'out|{0}'.format(signature)
+                Numb.cache(osignature, ocontent)
+            return [signature, result]
+        elif Numb.strategy == 'use-cache':
+            queried = Numb.query(signature)
+            return [signature, float(queried.split('|')[1])]
         else:
+            logger.error("unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].")
             return [signature, result]
 
     def __radd__(self, numb):
-        return Numb(Numb.doublon('radd', self, numb, self.value + numb))
+        return Numb(Numb.doublon('radd', self, numb, self.value + numb.value))
 
     def __add__(self, numb):
         return Numb(Numb.doublon('add', self, numb, self.value + numb.value))
@@ -120,7 +135,7 @@ class Numb:
     def __mod__(self, numb):
         return Numb(Numb.doublon('mod', self, numb, self.value % numb.value))
 
-    def __div__(self, numb):
+    def __truediv__(self, numb):
         return Numb(Numb.doublon('div', self, numb, self.value / numb.value))
 
     def __lt__(self, numb):
@@ -152,24 +167,22 @@ class Numb:
 
     @staticmethod
     def singleton(operator, numb, result):
-        signature = hashlib.sha256("{0}{1}".format(operator, numb.signature)).hexdigest()
-        print "hash = {0}{1}".format(operator, numb.signature)
-        print "signature = {0}".format(signature)
-        content = '{0}|{1}|{2}'.format(operator, format(result, '.{0}f'.format(Numb.precision)), format(numb.value, '.{0}f'.format(Numb.precision)))
-        Numb.cache(signature, content)
-        queried = Numb.query(signature)
-        if queried:
-            if Numb.check(queried, result):
-                return [signature, float(queried.split('|')[1])]
-            else:
-                if Numb.strategy == 'ignore-cache':
-                    return [signature, result]
-                elif Numb.strategy == 'use-cache':
-                    return [signature, float(queried.split('|')[1])]
-                else:
-                    logger.error("unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].")
-                    return [signature, result]
+        signature = hashlib.sha256("{0}{1}".format(operator, numb.signature).encode('utf-8')).hexdigest()
+        logger.debug("hash = {0}{1}".format(operator, numb.signature))
+        logger.debug("signature = {0}".format(signature))
+
+        if Numb.strategy == 'ignore-cache':
+            if Numb.cache_in:
+                queried = Numb.query(signature)
+                Numb.check(queried, result)
+            content = '{0}|{1}|{2}'.format(operator, format(result, '.{0}f'.format(Numb.precision)), format(numb.value, '.{0}f'.format(Numb.precision)))
+            Numb.cache(signature, content)
+            return [signature, result]
+        elif Numb.strategy == 'use-cache':
+            queried = Numb.query(signature)
+            return [signature, float(queried.split('|')[1])]
         else:
+            logger.error("unknown cache strategy provided. Only accepts ['ignore-cache', 'use-cache'].")
             return [signature, result]
 
 def exp(numb):
